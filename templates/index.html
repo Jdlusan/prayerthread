@@ -89,7 +89,7 @@
           </label>
         </div>
 
-        <button type="submit" class="w-full gold-gradient text-charcoal text-sm font-bold py-3 rounded-xl hover:opacity-90 transition-opacity">
+        <button type="submit" onclick="this.disabled=true;this.textContent='Submitting...';this.form.submit();" class="w-full gold-gradient text-charcoal text-sm font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
           Submit Request
         </button>
       </form>
