@@ -278,7 +278,7 @@ def report(req_id):
             prayer.is_hidden = True
         db.session.commit()
         if prayer.report_count == 1:
-            admin_email = os.getenv("MAIL_USERNAME")
+            admin_email = os.getenv("ADMIN_EMAIL")
             if admin_email:
                 send_email(
                     to=admin_email,
