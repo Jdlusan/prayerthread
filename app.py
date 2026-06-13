@@ -368,6 +368,45 @@ def sitemap():
     return Response(xml, mimetype="application/xml")
 
 
+@app.route("/admin/prayers")
+def admin_prayers():
+    key = request.args.get("key", "")
+    if key != os.getenv("ADMIN_SECRET", ""):
+        return "Unauthorized", 401
+    filter_by = request.args.get("filter", "all")
+    query = PrayerRequest.query
+    if filter_by == "reported":
+        query = query.filter(PrayerRequest.report_count > 0)
+    elif filter_by == "hidden":
+        query = query.filter_by(is_hidden=True)
+    else:
+        query = query.filter_by(is_hidden=False)
+    prayers = query.order_by(PrayerRequest.created_at.desc()).all()
+    return render_template("admin_prayers.html", prayers=prayers, key=key, filter_by=filter_by)
+
+
+@app.route("/admin/prayers/delete/<int:req_id>", methods=["POST"])
+def admin_delete_prayer(req_id):
+    key = request.args.get("key", "")
+    if key != os.getenv("ADMIN_SECRET", ""):
+        return "Unauthorized", 401
+    prayer = PrayerRequest.query.get_or_404(req_id)
+    db.session.delete(prayer)
+    db.session.commit()
+    return redirect(request.referrer or f"/admin/prayers?key={key}")
+
+
+@app.route("/admin/prayers/hide/<int:req_id>", methods=["POST"])
+def admin_hide_prayer(req_id):
+    key = request.args.get("key", "")
+    if key != os.getenv("ADMIN_SECRET", ""):
+        return "Unauthorized", 401
+    prayer = PrayerRequest.query.get_or_404(req_id)
+    prayer.is_hidden = not prayer.is_hidden
+    db.session.commit()
+    return redirect(request.referrer or f"/admin/prayers?key={key}")
+
+
 @app.route("/admin/subscribers")
 def admin_subscribers():
     key = request.args.get("key", "")

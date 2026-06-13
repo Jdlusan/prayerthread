@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prayer Requests — PrayerThread Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { charcoal: '#1a1a2e', navy: '#16213e', gold: '#e2b96f' } } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
+</head>
+<body class="bg-charcoal text-white min-h-screen px-4 py-10">
+
+  <div class="max-w-3xl mx-auto">
+
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <p class="text-white/30 text-xs uppercase tracking-widest mb-1">Admin</p>
+        <h1 class="text-2xl font-bold">Prayer Requests</h1>
+      </div>
+      <a href="/admin/subscribers?key={{ key }}" class="text-white/30 hover:text-white/60 text-sm transition-colors">Subscribers →</a>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <a href="/admin/prayers?key={{ key }}&filter=all"
+        class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'all' else 'border-white/10 text-white/40 hover:text-white/70' }}">
+        Active
+      </a>
+      <a href="/admin/prayers?key={{ key }}&filter=reported"
+        class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'reported' else 'border-white/10 text-white/40 hover:text-white/70' }}">
+        Reported
+      </a>
+      <a href="/admin/prayers?key={{ key }}&filter=hidden"
+        class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'hidden' else 'border-white/10 text-white/40 hover:text-white/70' }}">
+        Hidden
+      </a>
+    </div>
+
+    {% if prayers %}
+    <div class="space-y-3">
+      {% for r in prayers %}
+      <div class="bg-navy border {{ 'border-red-500/30' if r.report_count > 0 else 'border-white/10' }} rounded-2xl px-5 py-4">
+
+        <div class="flex items-start justify-between gap-4 mb-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="text-white/70 text-xs font-semibold">{{ 'Anonymous' if r.is_anonymous or not r.name else r.name }}</p>
+              <span class="text-white/20 text-xs">·</span>
+              <p class="text-white/30 text-xs">{{ r.category.title() }}</p>
+              <span class="text-white/20 text-xs">·</span>
+              <p class="text-white/30 text-xs">{{ r.created_at.strftime('%b %d, %Y') }}</p>
+              {% if r.report_count > 0 %}
+              <span class="bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-2 py-0.5 rounded-full">{{ r.report_count }} report{{ 's' if r.report_count != 1 else '' }}</span>
+              {% endif %}
+              {% if r.is_hidden %}
+              <span class="bg-white/5 border border-white/10 text-white/30 text-xs px-2 py-0.5 rounded-full">Hidden</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <form action="/admin/prayers/hide/{{ r.id }}?key={{ key }}" method="POST">
+              <button type="submit"
+                class="text-white/30 hover:text-yellow-400 text-xs transition-colors px-3 py-1.5 border border-white/10 rounded-lg hover:border-yellow-400/30">
+                {{ 'Unhide' if r.is_hidden else 'Hide' }}
+              </button>
+            </form>
+            <form action="/admin/prayers/delete/{{ r.id }}?key={{ key }}" method="POST"
+              onsubmit="return confirm('Permanently delete this prayer request?')">
+              <button type="submit"
+                class="text-white/30 hover:text-red-400 text-xs transition-colors px-3 py-1.5 border border-white/10 rounded-lg hover:border-red-400/30">
+                Delete
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <p class="text-white/60 text-sm leading-relaxed">{{ r.content }}</p>
+
+        {% if r.email %}
+        <p class="text-white/20 text-xs mt-2">{{ r.email }}</p>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-navy border border-white/10 rounded-2xl px-5 py-16 text-center">
+      <p class="text-white/30 text-sm">No requests in this view.</p>
+    </div>
+    {% endif %}
+
+    <p class="text-white/20 text-xs text-center mt-6">{{ prayers|length }} request{{ 's' if prayers|length != 1 else '' }}</p>
+
+  </div>
+
+</body>
+</html>
