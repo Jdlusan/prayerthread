@@ -2,13 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 import csv
 import io
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import random
+import resend
 
 load_dotenv()
 
@@ -19,21 +19,28 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_USERNAME")
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+
+resend.api_key = os.getenv("RESEND_API_KEY", "")
 
 db = SQLAlchemy(app)
-mail = Mail(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = ""
 
-from datetime import timedelta
-app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+
+def send_email(to, subject, body):
+    if not resend.api_key:
+        return
+    try:
+        resend.Emails.send({
+            "from": "PrayerThread <hello@prayerthread.app>",
+            "to": [to] if isinstance(to, str) else to,
+            "subject": subject,
+            "text": body,
+        })
+    except Exception:
+        pass
 
 
 class User(UserMixin, db.Model):
@@ -196,15 +203,16 @@ def pray(req_id):
     prayer.prayer_count += 1
     db.session.commit()
     if prayer.email:
-        try:
-            msg = Message(
-                subject="Someone just prayed for you",
-                recipients=[prayer.email],
-                body=f"Hi{' ' + prayer.name if prayer.name else ''},\n\nSomeone just prayed for your request:\n\n\"{prayer.content}\"\n\nYou've now been prayed for {prayer.prayer_count} time{'s' if prayer.prayer_count != 1 else ''}.\n\nKeep trusting God.\n\n— The PrayerThread Team"
+        send_email(
+            to=prayer.email,
+            subject="Someone just prayed for you",
+            body=(
+                f"Hi{' ' + prayer.name if prayer.name else ''},\n\n"
+                f"Someone just prayed for your request:\n\n\"{prayer.content}\"\n\n"
+                f"You've now been prayed for {prayer.prayer_count} time{'s' if prayer.prayer_count != 1 else ''}.\n\n"
+                "Keep trusting God.\n\n— The PrayerThread Team\nprayerthread.app"
             )
-            mail.send(msg)
-        except Exception:
-            pass
+        )
     return jsonify({"prayer_count": prayer.prayer_count})
 
 
@@ -272,15 +280,11 @@ def report(req_id):
         if prayer.report_count == 1:
             admin_email = os.getenv("MAIL_USERNAME")
             if admin_email:
-                try:
-                    msg = Message(
-                        subject="PrayerThread: A request was flagged",
-                        recipients=[admin_email],
-                        body=f"A prayer request has been reported.\n\nContent: \"{prayer.content}\"\n\nReport count: {prayer.report_count}\n\nReview at prayerthread.app"
-                    )
-                    mail.send(msg)
-                except Exception:
-                    pass
+                send_email(
+                    to=admin_email,
+                    subject="PrayerThread: A request was flagged",
+                    body=f"A prayer request has been reported.\n\nContent: \"{prayer.content}\"\n\nReport count: {prayer.report_count}\n\nReview at prayerthread.app"
+                )
     return jsonify({"status": "reported"})
 
 
@@ -291,23 +295,19 @@ def subscribe():
     if email and not DigestSubscriber.query.filter_by(email=email).first():
         db.session.add(DigestSubscriber(email=email, name=name or None))
         db.session.commit()
-        try:
-            msg = Message(
-                subject="You're on the PrayerThread morning list ✓",
-                recipients=[email],
-                body=(
-                    f"Hi{' ' + name if name else ''},\n\n"
-                    "You're signed up. Every morning you'll receive 3 prayer requests from the PrayerThread community.\n\n"
-                    "Take a moment to pray for each one. It matters more than you know.\n\n"
-                    "\"Pray without ceasing.\" — 1 Thessalonians 5:17\n\n"
-                    "— The PrayerThread Team\n"
-                    "prayerthread.app\n\n"
-                    f"To unsubscribe: https://prayerthread.app/unsubscribe?email={email}"
-                )
+        send_email(
+            to=email,
+            subject="You're on the PrayerThread morning list ✓",
+            body=(
+                f"Hi{' ' + name if name else ''},\n\n"
+                "You're signed up. Every morning you'll receive 3 prayer requests from the PrayerThread community.\n\n"
+                "Take a moment to pray for each one. It matters more than you know.\n\n"
+                "\"Pray without ceasing.\" — 1 Thessalonians 5:17\n\n"
+                "— The PrayerThread Team\n"
+                "prayerthread.app\n\n"
+                f"To unsubscribe: https://prayerthread.app/unsubscribe?email={email}"
             )
-            mail.send(msg)
-        except Exception:
-            pass
+        )
     return jsonify({"status": "ok"})
 
 
@@ -347,15 +347,11 @@ def send_digest():
             + "\n\n".join(lines)
             + f"\n\nTake a moment to pray for each one.\n\nVisit prayerthread.app to see more and let someone know you prayed.\n\n— The PrayerThread Team\n\nTo unsubscribe: https://prayerthread.app/unsubscribe?email={sub.email}"
         )
-        try:
-            msg = Message(
-                subject="3 prayers for today — PrayerThread",
-                recipients=[sub.email],
-                body=body
-            )
-            mail.send(msg)
-        except Exception:
-            pass
+        send_email(
+            to=sub.email,
+            subject="3 prayers for today — PrayerThread",
+            body=body
+        )
 
     return jsonify({"status": "sent", "count": len(subscribers)})
 
