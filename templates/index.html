@@ -121,7 +121,7 @@
         <div class="flex items-start justify-between mb-3">
           <div>
             <p class="text-white font-semibold text-sm">{{ 'Anonymous' if r.is_anonymous or not r.name else r.name }}</p>
-            <p class="text-white/30 text-xs mt-0.5">{{ r.created_at.strftime('%b %d, %Y') }} · {{ r.category.title() }}</p>
+            <p class="text-white/30 text-xs mt-0.5"><span class="local-time" data-utc="{{ r.created_at.isoformat() }}">{{ r.created_at.strftime('%b %d, %Y') }}</span> · {{ r.category.title() }}</p>
           </div>
           {% if current_user.is_authenticated and r.user_id == current_user.id %}
           <div class="flex items-center gap-2">
@@ -272,6 +272,11 @@
           btn.classList.add('text-red-400/40');
         });
     }
+
+    document.querySelectorAll('.local-time').forEach(el => {
+      const d = new Date(el.dataset.utc + 'Z');
+      el.textContent = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    });
 
     document.getElementById('subscribe-form').addEventListener('submit', function(e) {
       e.preventDefault();
