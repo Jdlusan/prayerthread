@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import random
 
 load_dotenv()
 
@@ -55,6 +56,13 @@ class PrayerRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship("Comment", backref="request", lazy=True, cascade="all, delete-orphan")
     updates = db.relationship("PrayerUpdate", backref="request", lazy=True, cascade="all, delete-orphan", order_by="PrayerUpdate.created_at.desc()")
+
+
+class DigestSubscriber(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class PrayerUpdate(db.Model):
@@ -230,6 +238,54 @@ def add_update(req_id):
         db.session.add(u)
         db.session.commit()
     return redirect(url_for("index") + f"#{req_id}")
+
+
+@app.route("/subscribe", methods=["POST"])
+def subscribe():
+    email = request.form.get("email", "").strip().lower()
+    name = request.form.get("name", "").strip()
+    if email and not DigestSubscriber.query.filter_by(email=email).first():
+        db.session.add(DigestSubscriber(email=email, name=name or None))
+        db.session.commit()
+    return jsonify({"status": "ok"})
+
+
+@app.route("/send-digest", methods=["POST"])
+def send_digest():
+    secret = request.headers.get("X-Digest-Secret", "")
+    if secret != os.getenv("DIGEST_SECRET", ""):
+        return jsonify({"error": "unauthorized"}), 401
+
+    requests_pool = PrayerRequest.query.filter_by(is_answered=False).all()
+    if not requests_pool:
+        return jsonify({"status": "no requests"})
+
+    sample = random.sample(requests_pool, min(3, len(requests_pool)))
+    subscribers = DigestSubscriber.query.all()
+
+    for sub in subscribers:
+        lines = []
+        for i, r in enumerate(sample, 1):
+            display_name = "Anonymous" if r.is_anonymous or not r.name else r.name
+            lines.append(f"{i}. {display_name} ({r.category.title()}):\n   \"{r.content}\"")
+
+        body = (
+            f"Good morning{', ' + sub.name if sub.name else ''},\n\n"
+            "Here are 3 prayer requests from the PrayerThread community for today:\n\n"
+            + "\n\n".join(lines)
+            + "\n\nTake a moment to pray for each one.\n\nVisit prayerthread.app to see more and let someone know you prayed.\n\n— The PrayerThread Team"
+        )
+        try:
+            msg = Message(
+                subject="3 prayers for today — PrayerThread",
+                recipients=[sub.email],
+                body=body
+            )
+            mail.send(msg)
+        except Exception:
+            pass
+
+    return jsonify({"status": "sent", "count": len(subscribers)})
 
 
 if __name__ == "__main__":

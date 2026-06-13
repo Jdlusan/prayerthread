@@ -175,6 +175,21 @@
 
   </div>
 
+  <div class="max-w-xl mx-auto px-4 pb-10">
+    <div class="bg-navy border border-gold/20 rounded-2xl px-5 py-5 text-center">
+      <p class="text-gold text-sm font-semibold mb-1">Pray with us every morning</p>
+      <p class="text-white/50 text-xs mb-4">Get 3 prayer requests delivered to your inbox daily.</p>
+      <form id="subscribe-form" class="flex gap-2 max-w-sm mx-auto">
+        <input id="sub-email" type="email" placeholder="Your email" required
+          class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50" />
+        <button type="submit" class="gold-gradient text-charcoal text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
+          Join
+        </button>
+      </form>
+      <p id="sub-thanks" class="hidden text-green-400 text-sm mt-3">You're in. Check your inbox tomorrow morning.</p>
+    </div>
+  </div>
+
   <footer class="text-center text-white/20 text-xs py-8">
     Built by <a href="https://jdlusan.com" class="hover:text-white/40 transition-colors">JD Lusan</a>
   </footer>
@@ -194,6 +209,19 @@
       const el = document.getElementById('comments-' + id);
       el.classList.toggle('hidden');
     }
+
+    document.getElementById('subscribe-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('sub-email').value;
+      fetch('/subscribe', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'email=' + encodeURIComponent(email)
+      }).then(() => {
+        document.getElementById('subscribe-form').classList.add('hidden');
+        document.getElementById('sub-thanks').classList.remove('hidden');
+      });
+    });
   </script>
 
 </body>
