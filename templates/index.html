@@ -43,14 +43,14 @@
 </head>
 <body class="bg-charcoal text-white min-h-screen">
 
-  <nav class="border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-charcoal/95 backdrop-blur-md z-50">
+  <nav class="border-b border-white/10 px-4 py-4 flex items-center justify-between sticky top-0 bg-charcoal/95 backdrop-blur-md z-50">
     <a href="/" class="flex items-center gap-2">
       <span class="font-semibold text-lg tracking-tight">Prayer<span class="text-gold">Thread</span></span>
     </a>
-    <div class="flex items-center gap-4">
-      <a href="/answered" class="text-white/50 hover:text-gold text-sm transition-colors">Answered Prayers</a>
+    <div class="flex items-center gap-3">
+      <a href="/answered" class="hidden sm:block text-white/50 hover:text-gold text-sm transition-colors">Answered Prayers</a>
       {% if current_user.is_authenticated %}
-        <span class="text-white/30 text-sm">{{ current_user.name }}</span>
+        <span class="hidden sm:block text-white/30 text-sm truncate max-w-[120px]">{{ current_user.name }}</span>
         <a href="/logout" class="text-white/40 hover:text-white/70 text-sm transition-colors">Sign out</a>
       {% else %}
         <a href="/login" class="text-white/50 hover:text-gold text-sm transition-colors">Sign in</a>
@@ -73,7 +73,7 @@
         <textarea name="content" rows="3" required placeholder="What would you like prayer for?"
           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50 resize-none"></textarea>
 
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <select name="category"
             class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white/70 focus:outline-none focus:border-gold/50">
             <option value="general">General</option>
@@ -104,10 +104,10 @@
     </div>
     {% endif %}
 
-    <div class="flex gap-2 flex-wrap mb-6">
+    <div class="flex gap-2 overflow-x-auto pb-1 mb-6 scrollbar-none" style="scrollbar-width:none;-ms-overflow-style:none">
       {% for cat in [('all','All'), ('health','Health'), ('relationships','Relationships'), ('finances','Finances'), ('grief','Grief'), ('guidance','Guidance')] %}
       <a href="/?category={{ cat[0] }}"
-        class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if category == cat[0] else 'border-white/10 text-white/40 hover:text-white/70' }}">
+        class="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if category == cat[0] else 'border-white/10 text-white/40 hover:text-white/70' }}">
         {{ cat[1] }}
       </a>
       {% endfor %}
@@ -156,7 +156,7 @@
         </form>
         {% endif %}
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2">
           <button onclick="pray({{ r.id }}, this)"
             class="flex items-center gap-2 bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
             🙏 I'm praying · <span id="count-{{ r.id }}">{{ r.prayer_count }}</span>
