@@ -4,3 +4,4 @@ flask-mail
 flask-login
 python-dotenv
 gunicorn
+psycopg2-binary
