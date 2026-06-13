@@ -36,7 +36,7 @@ class User(UserMixin, db.Model):
     requests = db.relationship("PrayerRequest", backref="user", lazy=True)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -54,6 +54,14 @@ class PrayerRequest(db.Model):
     prayer_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship("Comment", backref="request", lazy=True, cascade="all, delete-orphan")
+    updates = db.relationship("PrayerUpdate", backref="request", lazy=True, cascade="all, delete-orphan", order_by="PrayerUpdate.created_at.desc()")
+
+
+class PrayerUpdate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("prayer_request.id"), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Comment(db.Model):
@@ -208,6 +216,20 @@ def delete_request(req_id):
     db.session.delete(prayer)
     db.session.commit()
     return redirect(url_for("index"))
+
+
+@app.route("/update/<int:req_id>", methods=["POST"])
+@login_required
+def add_update(req_id):
+    prayer = PrayerRequest.query.get_or_404(req_id)
+    if prayer.user_id != current_user.id:
+        return redirect(url_for("index"))
+    content = request.form.get("content", "").strip()
+    if content:
+        u = PrayerUpdate(request_id=req_id, content=content)
+        db.session.add(u)
+        db.session.commit()
+    return redirect(url_for("index") + f"#{req_id}")
 
 
 if __name__ == "__main__":

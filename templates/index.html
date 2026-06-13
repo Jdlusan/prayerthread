@@ -118,6 +118,25 @@
 
         <p class="text-white/70 text-sm leading-relaxed mb-4">{{ r.content }}</p>
 
+        {% if r.updates %}
+        <div class="border-l-2 border-gold/30 pl-3 mb-4 space-y-2">
+          {% for u in r.updates %}
+          <div>
+            <p class="text-white/60 text-xs leading-relaxed">{{ u.content }}</p>
+            <p class="text-white/25 text-xs mt-0.5">Update · {{ u.created_at.strftime('%b %d') }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if current_user.is_authenticated and r.user_id == current_user.id %}
+        <form action="/update/{{ r.id }}" method="POST" class="flex gap-2 mb-4">
+          <input name="content" type="text" placeholder="Post an update on your request..."
+            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-gold/40" />
+          <button type="submit" class="text-gold/60 hover:text-gold text-xs font-semibold px-3 py-2 border border-gold/20 rounded-xl hover:border-gold/40 transition-colors">Update</button>
+        </form>
+        {% endif %}
+
         <div class="flex items-center gap-3">
           <button onclick="pray({{ r.id }}, this)"
             class="flex items-center gap-2 bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
