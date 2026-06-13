@@ -22,19 +22,22 @@
         <p class="text-white/30 text-xs uppercase tracking-widest mb-1">Admin</p>
         <h1 class="text-2xl font-bold">Prayer Requests</h1>
       </div>
-      <a href="/admin/subscribers?key={{ key }}" class="text-white/30 hover:text-white/60 text-sm transition-colors">Subscribers →</a>
+      <div class="flex items-center gap-4">
+        <a href="/admin/subscribers" class="text-white/30 hover:text-white/60 text-sm transition-colors">Subscribers →</a>
+        <a href="/admin/logout" class="text-white/20 hover:text-white/50 text-xs transition-colors">Sign out</a>
+      </div>
     </div>
 
     <div class="flex gap-2 mb-6">
-      <a href="/admin/prayers?key={{ key }}&filter=all"
+      <a href="/admin/prayers?filter=all"
         class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'all' else 'border-white/10 text-white/40 hover:text-white/70' }}">
         Active
       </a>
-      <a href="/admin/prayers?key={{ key }}&filter=reported"
+      <a href="/admin/prayers?filter=reported"
         class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'reported' else 'border-white/10 text-white/40 hover:text-white/70' }}">
         Reported
       </a>
-      <a href="/admin/prayers?key={{ key }}&filter=hidden"
+      <a href="/admin/prayers?filter=hidden"
         class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if filter_by == 'hidden' else 'border-white/10 text-white/40 hover:text-white/70' }}">
         Hidden
       </a>
@@ -62,13 +65,13 @@
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <form action="/admin/prayers/hide/{{ r.id }}?key={{ key }}" method="POST">
+            <form action="/admin/prayers/hide/{{ r.id }}?filter={{ filter_by }}" method="POST">
               <button type="submit"
                 class="text-white/30 hover:text-yellow-400 text-xs transition-colors px-3 py-1.5 border border-white/10 rounded-lg hover:border-yellow-400/30">
                 {{ 'Unhide' if r.is_hidden else 'Hide' }}
               </button>
             </form>
-            <form action="/admin/prayers/delete/{{ r.id }}?key={{ key }}" method="POST"
+            <form action="/admin/prayers/delete/{{ r.id }}?filter={{ filter_by }}" method="POST"
               onsubmit="return confirm('Permanently delete this prayer request?')">
               <button type="submit"
                 class="text-white/30 hover:text-red-400 text-xs transition-colors px-3 py-1.5 border border-white/10 rounded-lg hover:border-red-400/30">

@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, Response, session
+from functools import wraps
 import csv
 import io
 from flask_sqlalchemy import SQLAlchemy
@@ -368,11 +369,45 @@ def sitemap():
     return Response(xml, mimetype="application/xml")
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return redirect(url_for("admin_login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if session.get("admin_logged_in"):
+        return redirect(url_for("admin_prayers"))
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == os.getenv("ADMIN_SECRET", ""):
+            session["admin_logged_in"] = True
+            session.permanent = True
+            return redirect(url_for("admin_prayers"))
+        error = "Incorrect password."
+    return render_template("admin_login.html", error=error)
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin_logged_in", None)
+    return redirect(url_for("admin_login"))
+
+
+@app.route("/admin")
+@admin_required
+def admin_index():
+    return redirect(url_for("admin_prayers"))
+
+
 @app.route("/admin/prayers")
+@admin_required
 def admin_prayers():
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_SECRET", ""):
-        return "Unauthorized", 401
     filter_by = request.args.get("filter", "all")
     query = PrayerRequest.query
     if filter_by == "reported":
@@ -382,45 +417,37 @@ def admin_prayers():
     else:
         query = query.filter_by(is_hidden=False)
     prayers = query.order_by(PrayerRequest.created_at.desc()).all()
-    return render_template("admin_prayers.html", prayers=prayers, key=key, filter_by=filter_by)
+    return render_template("admin_prayers.html", prayers=prayers, filter_by=filter_by)
 
 
 @app.route("/admin/prayers/delete/<int:req_id>", methods=["POST"])
+@admin_required
 def admin_delete_prayer(req_id):
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_SECRET", ""):
-        return "Unauthorized", 401
     prayer = PrayerRequest.query.get_or_404(req_id)
     db.session.delete(prayer)
     db.session.commit()
-    return redirect(request.referrer or f"/admin/prayers?key={key}")
+    return redirect(url_for("admin_prayers", filter=request.args.get("filter", "all")))
 
 
 @app.route("/admin/prayers/hide/<int:req_id>", methods=["POST"])
+@admin_required
 def admin_hide_prayer(req_id):
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_SECRET", ""):
-        return "Unauthorized", 401
     prayer = PrayerRequest.query.get_or_404(req_id)
     prayer.is_hidden = not prayer.is_hidden
     db.session.commit()
-    return redirect(request.referrer or f"/admin/prayers?key={key}")
+    return redirect(url_for("admin_prayers", filter=request.args.get("filter", "all")))
 
 
 @app.route("/admin/subscribers")
+@admin_required
 def admin_subscribers():
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_SECRET", ""):
-        return "Unauthorized", 401
     subscribers = DigestSubscriber.query.order_by(DigestSubscriber.created_at.desc()).all()
-    return render_template("admin_subscribers.html", subscribers=subscribers, key=key)
+    return render_template("admin_subscribers.html", subscribers=subscribers)
 
 
 @app.route("/admin/subscribers/export")
+@admin_required
 def admin_subscribers_export():
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_SECRET", ""):
-        return "Unauthorized", 401
     subscribers = DigestSubscriber.query.order_by(DigestSubscriber.created_at.desc()).all()
     output = io.StringIO()
     writer = csv.writer(output)

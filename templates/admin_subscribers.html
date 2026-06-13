@@ -21,10 +21,11 @@
         <p class="text-white/30 text-xs uppercase tracking-widest mb-1">Admin</p>
         <h1 class="text-2xl font-bold">Digest Subscribers</h1>
       </div>
-      <a href="/admin/subscribers/export?key={{ key }}"
-        class="bg-gold/20 border border-gold/30 text-gold text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gold/30 transition-colors">
-        Export CSV
-      </a>
+      <div class="flex items-center gap-4">
+        <a href="/admin/subscribers/export" class="bg-gold/20 border border-gold/30 text-gold text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gold/30 transition-colors">Export CSV</a>
+        <a href="/admin/prayers" class="text-white/30 hover:text-white/60 text-sm transition-colors">Prayers →</a>
+        <a href="/admin/logout" class="text-white/20 hover:text-white/50 text-xs transition-colors">Sign out</a>
+      </div>
     </div>
 
     <div class="bg-navy border border-white/10 rounded-2xl overflow-hidden mb-4">

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — PrayerThread</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { charcoal: '#1a1a2e', navy: '#16213e', gold: '#e2b96f' } } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .gold-gradient { background: linear-gradient(135deg, #e2b96f 0%, #f5d98b 50%, #c9973a 100%); }
+  </style>
+</head>
+<body class="bg-charcoal text-white min-h-screen flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <p class="font-semibold text-lg tracking-tight mb-1">Prayer<span class="text-gold">Thread</span></p>
+      <p class="text-white/30 text-xs uppercase tracking-widest">Admin</p>
+    </div>
+
+    <div class="bg-navy border border-white/10 rounded-2xl px-6 py-6">
+      <form action="/admin/login" method="POST" class="space-y-4">
+        <div>
+          <label class="text-white/50 text-xs font-semibold uppercase tracking-wide mb-1.5 block">Password</label>
+          <input name="password" type="password" required autofocus placeholder="••••••••"
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50" />
+        </div>
+
+        {% if error %}
+        <p class="text-red-400 text-sm">{{ error }}</p>
+        {% endif %}
+
+        <button type="submit" class="w-full gold-gradient text-charcoal text-sm font-bold py-3 rounded-xl hover:opacity-90 transition-opacity">
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center mt-6">
+      <a href="/" class="text-white/20 hover:text-white/40 text-xs transition-colors">← Back to PrayerThread</a>
+    </p>
+  </div>
+
+</body>
+</html>
