@@ -1,0 +1,12 @@
+<svg viewBox="0 0 340 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Icon mark -->
+  <circle cx="38" cy="32" r="24" stroke="#c9973a" stroke-width="2.6"/>
+  <!-- Cross -->
+  <line x1="38" y1="14" x2="38" y2="50" stroke="#c9973a" stroke-width="2.6" stroke-linecap="round"/>
+  <line x1="20" y1="32" x2="56" y2="32" stroke="#c9973a" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- Thread tail -->
+  <path d="M 52,50 C 60,58 66,62 58,68 C 50,72 30,68 16,62" stroke="#c9973a" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- Wordmark: Prayer (navy) Thread (gold) -->
+  <text x="80" y="46" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="400" fill="#16213e">Prayer</text>
+  <text x="218" y="46" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="400" fill="#c9973a">Thread</text>
+</svg>

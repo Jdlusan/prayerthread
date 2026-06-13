@@ -27,7 +27,15 @@
 <body class="bg-charcoal text-white min-h-screen">
 
   <nav class="border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-charcoal/95 backdrop-blur-md z-50">
-    <a href="/" class="font-bold text-white text-lg">PrayerThread</a>
+    <a href="/" class="flex items-center gap-2.5">
+      <svg viewBox="0 0 68 72" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="34" cy="30" r="22" stroke="#c9973a" stroke-width="2.4"/>
+        <line x1="34" y1="13" x2="34" y2="47" stroke="#c9973a" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="17" y1="30" x2="51" y2="30" stroke="#c9973a" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M 48,47 C 56,55 62,59 54,65 C 46,69 26,65 12,59" stroke="#c9973a" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <span class="font-semibold text-lg tracking-tight">Prayer<span class="text-gold">Thread</span></span>
+    </a>
     <div class="flex items-center gap-4">
       <a href="/answered" class="text-white/50 hover:text-gold text-sm transition-colors">Answered Prayers</a>
       {% if current_user.is_authenticated %}
