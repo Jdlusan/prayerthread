@@ -291,6 +291,22 @@ def subscribe():
     if email and not DigestSubscriber.query.filter_by(email=email).first():
         db.session.add(DigestSubscriber(email=email, name=name or None))
         db.session.commit()
+        try:
+            msg = Message(
+                subject="You're on the PrayerThread morning list ✓",
+                recipients=[email],
+                body=(
+                    f"Hi{' ' + name if name else ''},\n\n"
+                    "You're signed up. Every morning you'll receive 3 prayer requests from the PrayerThread community.\n\n"
+                    "Take a moment to pray for each one. It matters more than you know.\n\n"
+                    "\"Pray without ceasing.\" — 1 Thessalonians 5:17\n\n"
+                    "— The PrayerThread Team\n"
+                    "prayerthread.app"
+                )
+            )
+            mail.send(msg)
+        except Exception:
+            pass
     return jsonify({"status": "ok"})
 
 
