@@ -152,11 +152,12 @@ def logout():
 @app.route("/")
 def index():
     category = request.args.get("category", "all")
-    if category == "all":
-        requests_list = PrayerRequest.query.filter_by(is_answered=False, is_hidden=False).order_by(PrayerRequest.created_at.desc()).all()
-    else:
-        requests_list = PrayerRequest.query.filter_by(is_answered=False, is_hidden=False, category=category).order_by(PrayerRequest.created_at.desc()).all()
-    return render_template("index.html", requests=requests_list, category=category)
+    page = request.args.get("page", 1, type=int)
+    query = PrayerRequest.query.filter_by(is_answered=False, is_hidden=False)
+    if category != "all":
+        query = query.filter_by(category=category)
+    pagination = query.order_by(PrayerRequest.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    return render_template("index.html", requests=pagination.items, pagination=pagination, category=category)
 
 
 @app.route("/answered")
