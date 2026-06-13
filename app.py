@@ -301,13 +301,25 @@ def subscribe():
                     "Take a moment to pray for each one. It matters more than you know.\n\n"
                     "\"Pray without ceasing.\" — 1 Thessalonians 5:17\n\n"
                     "— The PrayerThread Team\n"
-                    "prayerthread.app"
+                    "prayerthread.app\n\n"
+                    f"To unsubscribe: https://prayerthread.app/unsubscribe?email={email}"
                 )
             )
             mail.send(msg)
         except Exception:
             pass
     return jsonify({"status": "ok"})
+
+
+@app.route("/unsubscribe")
+def unsubscribe():
+    email = request.args.get("email", "").strip().lower()
+    if email:
+        sub = DigestSubscriber.query.filter_by(email=email).first()
+        if sub:
+            db.session.delete(sub)
+            db.session.commit()
+    return render_template("unsubscribe.html", email=email)
 
 
 @app.route("/send-digest", methods=["POST"])
@@ -333,7 +345,7 @@ def send_digest():
             f"Good morning{', ' + sub.name if sub.name else ''},\n\n"
             "Here are 3 prayer requests from the PrayerThread community for today:\n\n"
             + "\n\n".join(lines)
-            + "\n\nTake a moment to pray for each one.\n\nVisit prayerthread.app to see more and let someone know you prayed.\n\n— The PrayerThread Team"
+            + f"\n\nTake a moment to pray for each one.\n\nVisit prayerthread.app to see more and let someone know you prayed.\n\n— The PrayerThread Team\n\nTo unsubscribe: https://prayerthread.app/unsubscribe?email={sub.email}"
         )
         try:
             msg = Message(
