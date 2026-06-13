@@ -53,9 +53,18 @@ class PrayerRequest(db.Model):
     is_anonymous = db.Column(db.Boolean, default=False)
     is_answered = db.Column(db.Boolean, default=False)
     prayer_count = db.Column(db.Integer, default=0)
+    report_count = db.Column(db.Integer, default=0)
+    is_hidden = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship("Comment", backref="request", lazy=True, cascade="all, delete-orphan")
     updates = db.relationship("PrayerUpdate", backref="request", lazy=True, cascade="all, delete-orphan", order_by="PrayerUpdate.created_at.desc()")
+
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("prayer_request.id"), nullable=False)
+    ip = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class DigestSubscriber(db.Model):
@@ -139,9 +148,9 @@ def logout():
 def index():
     category = request.args.get("category", "all")
     if category == "all":
-        requests_list = PrayerRequest.query.filter_by(is_answered=False).order_by(PrayerRequest.created_at.desc()).all()
+        requests_list = PrayerRequest.query.filter_by(is_answered=False, is_hidden=False).order_by(PrayerRequest.created_at.desc()).all()
     else:
-        requests_list = PrayerRequest.query.filter_by(is_answered=False, category=category).order_by(PrayerRequest.created_at.desc()).all()
+        requests_list = PrayerRequest.query.filter_by(is_answered=False, is_hidden=False, category=category).order_by(PrayerRequest.created_at.desc()).all()
     return render_template("index.html", requests=requests_list, category=category)
 
 
@@ -238,6 +247,32 @@ def add_update(req_id):
         db.session.add(u)
         db.session.commit()
     return redirect(url_for("index") + f"#{req_id}")
+
+
+@app.route("/report/<int:req_id>", methods=["POST"])
+def report(req_id):
+    prayer = PrayerRequest.query.get_or_404(req_id)
+    ip = request.remote_addr
+    already = Report.query.filter_by(request_id=req_id, ip=ip).first()
+    if not already:
+        db.session.add(Report(request_id=req_id, ip=ip))
+        prayer.report_count += 1
+        if prayer.report_count >= 3:
+            prayer.is_hidden = True
+        db.session.commit()
+        if prayer.report_count == 1:
+            admin_email = os.getenv("MAIL_USERNAME")
+            if admin_email:
+                try:
+                    msg = Message(
+                        subject="PrayerThread: A request was flagged",
+                        recipients=[admin_email],
+                        body=f"A prayer request has been reported.\n\nContent: \"{prayer.content}\"\n\nReport count: {prayer.report_count}\n\nReview at prayerthread.app"
+                    )
+                    mail.send(msg)
+                except Exception:
+                    pass
+    return jsonify({"status": "reported"})
 
 
 @app.route("/subscribe", methods=["POST"])

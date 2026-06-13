@@ -147,6 +147,12 @@
             class="text-white/40 hover:text-white/70 text-xs transition-colors">
             {{ r.comments|length }} encouragement{{ 's' if r.comments|length != 1 else '' }}
           </button>
+
+          {% if not current_user.is_authenticated or r.user_id != current_user.id %}
+          <button onclick="reportRequest({{ r.id }}, this)" class="ml-auto text-white/15 hover:text-red-400/60 text-xs transition-colors" title="Flag as inappropriate">
+            ⚑
+          </button>
+          {% endif %}
         </div>
 
         <div id="comments-{{ r.id }}" class="hidden mt-4 space-y-3">
@@ -208,6 +214,17 @@
     function toggleComments(id) {
       const el = document.getElementById('comments-' + id);
       el.classList.toggle('hidden');
+    }
+
+    function reportRequest(id, btn) {
+      fetch('/report/' + id, { method: 'POST' })
+        .then(r => r.json())
+        .then(() => {
+          btn.textContent = 'Flagged';
+          btn.disabled = true;
+          btn.classList.remove('hover:text-red-400/60');
+          btn.classList.add('text-red-400/40');
+        });
     }
 
     document.getElementById('subscribe-form').addEventListener('submit', function(e) {
