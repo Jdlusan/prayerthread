@@ -29,6 +29,9 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = ""
 
+from datetime import timedelta
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -134,7 +137,7 @@ def login():
         if not user or not user.check_password(password):
             flash("Invalid email or password.")
             return render_template("login.html")
-        login_user(user)
+        login_user(user, remember=True)
         return redirect(url_for("index"))
     return render_template("login.html")
 
