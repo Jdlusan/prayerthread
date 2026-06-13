@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Answered Prayers — PrayerThread</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            charcoal: '#1a1a2e',
+            navy: '#16213e',
+            gold: '#e2b96f',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
+</head>
+<body class="bg-charcoal text-white min-h-screen">
+
+  <nav class="border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-charcoal/95 backdrop-blur-md z-50">
+    <a href="/" class="font-bold text-white text-lg">PrayerThread</a>
+    <a href="/answered" class="text-gold text-sm font-semibold">Answered Prayers</a>
+  </nav>
+
+  <div class="max-w-xl mx-auto px-4 py-10">
+
+    <div class="text-center mb-10">
+      <h1 class="text-3xl font-bold mb-3">Answered Prayers</h1>
+      <p class="text-white/50 text-sm leading-relaxed">Testimonies of God at work — in real people, in real time.</p>
+    </div>
+
+    {% if requests %}
+    <div class="space-y-4">
+      {% for r in requests %}
+      <div class="bg-navy border border-green-500/20 rounded-2xl px-5 py-4">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <p class="text-white font-semibold text-sm">{{ 'Anonymous' if r.is_anonymous or not r.name else r.name }}</p>
+            <p class="text-white/30 text-xs mt-0.5">{{ r.created_at.strftime('%b %d, %Y') }} · {{ r.category.title() }}</p>
+          </div>
+          <span class="text-xs bg-green-500/10 border border-green-500/20 text-green-400 rounded-full px-3 py-1">Answered</span>
+        </div>
+        <p class="text-white/70 text-sm leading-relaxed mb-3">{{ r.content }}</p>
+        <p class="text-white/30 text-xs">Prayed for {{ r.prayer_count }} time{{ 's' if r.prayer_count != 1 else '' }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+      <p class="text-white/30 text-sm">No answered prayers yet — they're coming.</p>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-10">
+      <a href="/" class="text-gold/70 text-sm hover:text-gold transition-colors">← Back to the PrayerThread</a>
+    </div>
+
+  </div>
+
+  <footer class="text-center text-white/20 text-xs py-8">
+    Built by <a href="https://jdlusan.com" class="hover:text-white/40 transition-colors">JD Lusan</a>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrayerThread — Pray Together</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            charcoal: '#1a1a2e',
+            navy: '#16213e',
+            gold: '#e2b96f',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .gold-gradient { background: linear-gradient(135deg, #e2b96f 0%, #f5d98b 50%, #c9973a 100%); }
+  </style>
+</head>
+<body class="bg-charcoal text-white min-h-screen">
+
+  <!-- Nav -->
+  <nav class="border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-charcoal/95 backdrop-blur-md z-50">
+    <a href="/" class="font-bold text-white text-lg">PrayerThread</a>
+    <a href="/answered" class="text-white/50 hover:text-gold text-sm transition-colors">Answered Prayers</a>
+  </nav>
+
+  <div class="max-w-xl mx-auto px-4 py-10">
+
+    <!-- Hero -->
+    <div class="text-center mb-10">
+      <h1 class="text-3xl font-bold mb-3">Bring your request.<br>Let us pray with you.</h1>
+      <p class="text-white/50 text-sm leading-relaxed">A community of believers praying for one another — in real time.</p>
+    </div>
+
+    <!-- Submit form -->
+    <div class="bg-navy border border-white/10 rounded-2xl px-5 py-5 mb-8">
+      <p class="text-gold text-sm font-semibold mb-4">Share a prayer request</p>
+      <form action="/submit" method="POST" class="space-y-3">
+        <textarea name="content" rows="3" required placeholder="What would you like prayer for?"
+          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50 resize-none"></textarea>
+
+        <div class="grid grid-cols-2 gap-3">
+          <input name="name" type="text" placeholder="Your name (optional)"
+            class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50" />
+          <input name="email" type="email" placeholder="Email (get notified)"
+            class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <select name="category"
+            class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white/70 focus:outline-none focus:border-gold/50">
+            <option value="general">General</option>
+            <option value="health">Health</option>
+            <option value="relationships">Relationships</option>
+            <option value="finances">Finances</option>
+            <option value="grief">Grief</option>
+            <option value="guidance">Guidance</option>
+          </select>
+          <label class="flex items-center gap-2 text-white/50 text-sm cursor-pointer">
+            <input type="checkbox" name="anonymous" class="accent-gold" />
+            Post anonymously
+          </label>
+        </div>
+
+        <button type="submit" class="w-full gold-gradient text-charcoal text-sm font-bold py-3 rounded-xl hover:opacity-90 transition-opacity">
+          Submit Request
+        </button>
+      </form>
+    </div>
+
+    <!-- Category filter -->
+    <div class="flex gap-2 flex-wrap mb-6">
+      {% for cat in [('all','All'), ('health','Health'), ('relationships','Relationships'), ('finances','Finances'), ('grief','Grief'), ('guidance','Guidance')] %}
+      <a href="/?category={{ cat[0] }}"
+        class="text-xs px-3 py-1.5 rounded-full border transition-colors {{ 'bg-gold/20 border-gold/40 text-gold' if category == cat[0] else 'border-white/10 text-white/40 hover:text-white/70' }}">
+        {{ cat[1] }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Prayer requests -->
+    {% if requests %}
+    <div class="space-y-4">
+      {% for r in requests %}
+      <div id="{{ r.id }}" class="bg-navy border border-white/10 rounded-2xl px-5 py-4">
+
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <p class="text-white font-semibold text-sm">{{ 'Anonymous' if r.is_anonymous or not r.name else r.name }}</p>
+            <p class="text-white/30 text-xs mt-0.5">{{ r.created_at.strftime('%b %d, %Y') }} · {{ r.category.title() }}</p>
+          </div>
+        </div>
+
+        <p class="text-white/70 text-sm leading-relaxed mb-4">{{ r.content }}</p>
+
+        <div class="flex items-center gap-3">
+          <button onclick="pray({{ r.id }}, this)"
+            class="flex items-center gap-2 bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+            🙏 I'm praying · <span id="count-{{ r.id }}">{{ r.prayer_count }}</span>
+          </button>
+
+          <button onclick="toggleComments({{ r.id }})"
+            class="text-white/40 hover:text-white/70 text-xs transition-colors">
+            {{ r.comments|length }} encouragement{{ 's' if r.comments|length != 1 else '' }}
+          </button>
+
+          <form action="/answered/{{ r.id }}" method="POST" class="ml-auto">
+            <button type="submit" class="text-white/20 hover:text-green-400 text-xs transition-colors">Answered ✓</button>
+          </form>
+        </div>
+
+        <div id="comments-{{ r.id }}" class="hidden mt-4 space-y-3">
+          {% for c in r.comments %}
+          <div class="bg-white/5 rounded-xl px-4 py-3">
+            <p class="text-white/50 text-xs font-semibold mb-1">{{ c.name or 'Anonymous' }}</p>
+            <p class="text-white/60 text-sm">{{ c.content }}</p>
+          </div>
+          {% endfor %}
+
+          <form action="/comment/{{ r.id }}" method="POST" class="flex gap-2 mt-2">
+            <input name="name" type="text" placeholder="Your name"
+              class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none w-28" />
+            <input name="content" type="text" placeholder="Leave an encouragement..." required
+              class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-gold/50" />
+            <button type="submit" class="gold-gradient text-charcoal text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90">Send</button>
+          </form>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+      <p class="text-white/30 text-sm">No requests yet. Be the first to share.</p>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <footer class="text-center text-white/20 text-xs py-8">
+    Built by <a href="https://jdlusan.com" class="hover:text-white/40 transition-colors">JD Lusan</a>
+  </footer>
+
+  <script>
+    function pray(id, btn) {
+      fetch('/pray/' + id, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('count-' + id).textContent = data.prayer_count;
+          btn.classList.add('bg-gold/30', 'border-gold/50');
+          btn.disabled = true;
+        });
+    }
+
+    function toggleComments(id) {
+      const el = document.getElementById('comments-' + id);
+      el.classList.toggle('hidden');
+    }
+  </script>
+
+</body>
+</html>
