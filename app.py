@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -20,10 +22,29 @@ app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_USERNAME")
 
 db = SQLAlchemy(app)
 mail = Mail(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+login_manager.login_message = ""
+
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    requests = db.relationship("PrayerRequest", backref="user", lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class PrayerRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(200), nullable=True)
     content = db.Column(db.Text, nullable=False)
@@ -47,6 +68,57 @@ with app.app_context():
     db.create_all()
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        if not name or not email or not password:
+            flash("All fields are required.")
+            return render_template("register.html")
+        if User.query.filter_by(email=email).first():
+            flash("An account with that email already exists.")
+            return render_template("register.html")
+        user = User(name=name, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for("index"))
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            flash("Invalid email or password.")
+            return render_template("login.html")
+        login_user(user)
+        return redirect(url_for("index"))
+    return render_template("login.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("index"))
+
+
 @app.route("/")
 def index():
     category = request.args.get("category", "all")
@@ -64,19 +136,17 @@ def answered():
 
 
 @app.route("/submit", methods=["POST"])
+@login_required
 def submit():
     content = request.form.get("content", "").strip()
     if not content:
         return redirect(url_for("index"))
-
-    name = request.form.get("name", "").strip()
-    email = request.form.get("email", "").strip()
     category = request.form.get("category", "general")
     is_anonymous = request.form.get("anonymous") == "on"
-
     prayer = PrayerRequest(
-        name=name if not is_anonymous else None,
-        email=email if email else None,
+        user_id=current_user.id,
+        name=current_user.name if not is_anonymous else None,
+        email=current_user.email,
         content=content,
         category=category,
         is_anonymous=is_anonymous,
@@ -91,7 +161,6 @@ def pray(req_id):
     prayer = PrayerRequest.query.get_or_404(req_id)
     prayer.prayer_count += 1
     db.session.commit()
-
     if prayer.email:
         try:
             msg = Message(
@@ -102,7 +171,6 @@ def pray(req_id):
             mail.send(msg)
         except Exception:
             pass
-
     return jsonify({"prayer_count": prayer.prayer_count})
 
 
@@ -111,6 +179,8 @@ def comment(req_id):
     prayer = PrayerRequest.query.get_or_404(req_id)
     content = request.form.get("content", "").strip()
     name = request.form.get("name", "").strip()
+    if not name and current_user.is_authenticated:
+        name = current_user.name
     if content:
         c = Comment(request_id=req_id, name=name or None, content=content)
         db.session.add(c)
@@ -119,9 +189,23 @@ def comment(req_id):
 
 
 @app.route("/answered/<int:req_id>", methods=["POST"])
+@login_required
 def mark_answered(req_id):
     prayer = PrayerRequest.query.get_or_404(req_id)
+    if prayer.user_id != current_user.id:
+        return redirect(url_for("index"))
     prayer.is_answered = True
+    db.session.commit()
+    return redirect(url_for("index"))
+
+
+@app.route("/delete/<int:req_id>", methods=["POST"])
+@login_required
+def delete_request(req_id):
+    prayer = PrayerRequest.query.get_or_404(req_id)
+    if prayer.user_id != current_user.id:
+        return redirect(url_for("index"))
+    db.session.delete(prayer)
     db.session.commit()
     return redirect(url_for("index"))
 
