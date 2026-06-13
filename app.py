@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, Response
+import csv
+import io
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -321,6 +323,33 @@ def send_digest():
             pass
 
     return jsonify({"status": "sent", "count": len(subscribers)})
+
+
+@app.route("/admin/subscribers")
+def admin_subscribers():
+    key = request.args.get("key", "")
+    if key != os.getenv("ADMIN_SECRET", ""):
+        return "Unauthorized", 401
+    subscribers = DigestSubscriber.query.order_by(DigestSubscriber.created_at.desc()).all()
+    return render_template("admin_subscribers.html", subscribers=subscribers, key=key)
+
+
+@app.route("/admin/subscribers/export")
+def admin_subscribers_export():
+    key = request.args.get("key", "")
+    if key != os.getenv("ADMIN_SECRET", ""):
+        return "Unauthorized", 401
+    subscribers = DigestSubscriber.query.order_by(DigestSubscriber.created_at.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Email", "Name", "Joined"])
+    for s in subscribers:
+        writer.writerow([s.email, s.name or "", s.created_at.strftime("%Y-%m-%d")])
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=subscribers.csv"}
+    )
 
 
 if __name__ == "__main__":
