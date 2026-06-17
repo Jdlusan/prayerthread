@@ -461,6 +461,18 @@ def admin_subscribers_export():
     )
 
 
+@app.route('/robots.txt')
+def robots():
+    txt = """User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://prayerthread.app/sitemap.xml
+"""
+    return Response(txt, mimetype='text/plain')
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
